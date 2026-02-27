@@ -23,13 +23,18 @@
   // ── CONFIGURATION ─────────────────────────────────────────
   // Merge window.BotHiveConfig overrides with defaults.
   const cfg = Object.assign({
-    webhookUrl: 'https://mii19.app.n8n.cloud/webhook/widgetreply',
-    botName: 'BotHive AI',
-    botTagline: 'Online · Typically replies instantly',
-    welcomeMsg: "👋 Hi! I'm your AI assistant. How can I help you today?",
-    placeholder: 'Type your message…',
-    storageKey: 'bh_chat_session',
+    webhookUrl:       'https://mii19.app.n8n.cloud/webhook/widgetreply',
+    botName:          'BotHive AI',
+    botTagline:       'Online · Typically replies instantly',
+    welcomeMsg:       "👋 Hi! I'm your AI assistant. How can I help you today?",
+    placeholder:      'Type your message…',
+    storageKey:       'bh_chat_session',
     requestTimeoutMs: 20000,
+    // ── Colour config — override per client ──────────────────
+    primaryColor:     '#f97316',   // Main brand colour (default: orange)
+    primaryDark:      '#ea580c',   // Hover / gradient dark shade
+    primaryLight:     '#fff7ed',   // Light tint for backgrounds
+    primaryRgb:       '249,115,22', // RGB of primaryColor for pulse animation
   }, window.BotHiveConfig || {});
 
   // ── INLINED CSS ───────────────────────────────────────────
@@ -37,7 +42,8 @@
   // zero external dependencies or file hosting requirements.
   const CSS = `
     :root{
-      --bh-primary:#2563eb;--bh-primary-dark:#1d4ed8;--bh-primary-light:#eff6ff;
+      --bh-primary:#f97316;--bh-primary-dark:#ea580c;--bh-primary-light:#fff7ed;
+      --bh-primary-rgb:249,115,22;
       --bh-surface:#fff;--bh-surface-2:#f8fafc;--bh-border:#e2e8f0;
       --bh-text-primary:#1e293b;--bh-text-secondary:#64748b;
       --bh-error:#ef4444;--bh-error-light:#fef2f2;
@@ -62,7 +68,7 @@
     }
     #bh-launcher:hover{
       background:var(--bh-primary-dark);transform:scale(1.08);
-      box-shadow:var(--bh-shadow-lg),0 0 0 6px rgba(37,99,235,.15);animation:none;
+      box-shadow:var(--bh-shadow-lg),0 0 0 6px rgba(var(--bh-primary-rgb),.15);animation:none;
     }
     #bh-launcher:active{transform:scale(0.94);}
     #bh-launcher .bh-icon{
@@ -219,9 +225,9 @@
     #bh-branding a:hover{text-decoration:underline;}
     /* Animations */
     @keyframes bh-pulse{
-      0%{box-shadow:var(--bh-shadow-lg),0 0 0 0 rgba(37,99,235,.45);}
-      70%{box-shadow:var(--bh-shadow-lg),0 0 0 14px rgba(37,99,235,0);}
-      100%{box-shadow:var(--bh-shadow-lg),0 0 0 0 rgba(37,99,235,0);}
+      0%{box-shadow:var(--bh-shadow-lg),0 0 0 0 rgba(var(--bh-primary-rgb),.45);}
+      70%{box-shadow:var(--bh-shadow-lg),0 0 0 14px rgba(var(--bh-primary-rgb),0);}
+      100%{box-shadow:var(--bh-shadow-lg),0 0 0 0 rgba(var(--bh-primary-rgb),0);}
     }
     @keyframes bh-status-pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
     @keyframes bh-bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-5px);}}
@@ -242,7 +248,7 @@
   // ── UTILS ────────────────────────────────────────────────
   /** Escape HTML to prevent XSS when inserting user content into DOM */
   function escapeHTML(str) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    const map = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' };
     return String(str).replace(/[&<>"']/g, m => map[m]);
   }
 
@@ -272,14 +278,14 @@
           const p = JSON.parse(raw);
           if (p && p.sessionId && Array.isArray(p.history)) return p;
         }
-      } catch (e) { /* ignore */ }
+      } catch(e) { /* ignore */ }
       return { sessionId: generateUUID(), history: [] };
     }
     function save(s) {
-      try { localStorage.setItem(cfg.storageKey, JSON.stringify(s)); } catch (e) { /* ignore */ }
+      try { localStorage.setItem(cfg.storageKey, JSON.stringify(s)); } catch(e) { /* ignore */ }
     }
     function clear() {
-      try { localStorage.removeItem(cfg.storageKey); } catch (e) { /* ignore */ }
+      try { localStorage.removeItem(cfg.storageKey); } catch(e) { /* ignore */ }
     }
     return { load, save, clear };
   })();
@@ -292,16 +298,16 @@
     let response;
     try {
       response = await fetch(cfg.webhookUrl, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: sanitizeInput(message),
+        body:    JSON.stringify({
+          message:   sanitizeInput(message),
           sessionId: sessionId,
           timestamp: new Date().toISOString(),
         }),
         signal: controller.signal,
       });
-    } catch (err) {
+    } catch(err) {
       if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
       throw new Error('Network error. Please check your connection.');
     } finally {
@@ -397,7 +403,7 @@
   // ── UI HELPERS ───────────────────────────────────────────
   function appendMessage(role, text, date) {
     date = date || new Date();
-    const messages = document.getElementById('bh-messages');
+    const messages  = document.getElementById('bh-messages');
     const typingRow = document.getElementById('bh-typing-row');
 
     const row = document.createElement('div');
@@ -420,10 +426,10 @@
   }
 
   function appendSystemMessage(text) {
-    const messages = document.getElementById('bh-messages');
+    const messages  = document.getElementById('bh-messages');
     const typingRow = document.getElementById('bh-typing-row');
     const div = document.createElement('div');
-    div.className = 'bh-system-msg';
+    div.className   = 'bh-system-msg';
     div.textContent = text;
     messages.insertBefore(div, typingRow);
   }
@@ -435,10 +441,10 @@
   }
 
   function appendError(msg) {
-    const messages = document.getElementById('bh-messages');
+    const messages  = document.getElementById('bh-messages');
     const typingRow = document.getElementById('bh-typing-row');
     const div = document.createElement('div');
-    div.className = 'bh-error-msg';
+    div.className   = 'bh-error-msg';
     div.textContent = `⚠️  ${msg}`;
     messages.insertBefore(div, typingRow);
     scrollToBottom();
@@ -450,9 +456,9 @@
   }
 
   function setLoading(loading) {
-    const btn = document.getElementById('bh-send-btn');
+    const btn   = document.getElementById('bh-send-btn');
     const input = document.getElementById('bh-input');
-    btn.disabled = loading;
+    btn.disabled   = loading;
     input.disabled = loading;
   }
 
@@ -463,7 +469,7 @@
 
   function validateSendButton() {
     const input = document.getElementById('bh-input');
-    const btn = document.getElementById('bh-send-btn');
+    const btn   = document.getElementById('bh-send-btn');
     if (!input.disabled) btn.disabled = sanitizeInput(input.value).length === 0;
   }
 
@@ -476,7 +482,7 @@
     isOpen = true;
     const win = document.getElementById('bh-chat-window');
     const launcher = document.getElementById('bh-launcher');
-    const badge = document.getElementById('bh-unread-badge');
+    const badge    = document.getElementById('bh-unread-badge');
     win.classList.add('bh-visible');
     win.setAttribute('aria-hidden', 'false');
     launcher.classList.add('bh-open');
@@ -488,7 +494,7 @@
 
   function closeChat() {
     isOpen = false;
-    const win = document.getElementById('bh-chat-window');
+    const win      = document.getElementById('bh-chat-window');
     const launcher = document.getElementById('bh-launcher');
     win.classList.remove('bh-visible');
     win.setAttribute('aria-hidden', 'true');
@@ -500,9 +506,9 @@
   let session;
 
   async function handleSend() {
-    const input = document.getElementById('bh-input');
+    const input   = document.getElementById('bh-input');
     const rawText = input.value;
-    const text = sanitizeInput(rawText);
+    const text    = sanitizeInput(rawText);
     if (!text) return;
 
     input.value = '';
@@ -524,7 +530,7 @@
       appendMessage('bot', reply, replyTime);
       session.history.push({ role: 'bot', text: reply, time: replyTime.toISOString() });
       SessionManager.save(session);
-    } catch (err) {
+    } catch(err) {
       setTyping(false);
       appendError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -561,9 +567,24 @@
     });
   }
 
+  // ── COLOUR OVERRIDE ─────────────────────────────────────
+  /**
+   * Applies cfg.primaryColor, primaryDark, primaryLight, primaryRgb
+   * as CSS custom properties on :root so every element picks them up.
+   */
+  function applyColors() {
+    const root = document.documentElement;
+    root.style.setProperty('--bh-primary',      cfg.primaryColor);
+    root.style.setProperty('--bh-primary-dark',  cfg.primaryDark);
+    root.style.setProperty('--bh-primary-light', cfg.primaryLight);
+    root.style.setProperty('--bh-primary-rgb',   cfg.primaryRgb);
+  }
+
   // ── INIT ─────────────────────────────────────────────────
   function init() {
     injectStyles();
+    // Apply per-client colour overrides from BotHiveConfig
+    applyColors();
     buildDOM();
     session = SessionManager.load();
     bindEvents();
