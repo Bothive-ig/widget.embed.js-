@@ -587,7 +587,7 @@
 
 /* User bubble — lighter orange, compact padding */
 .bh-msg-row.bh-user .bh-bubble {
-  background: #FF7A1A;
+  background: var(--bh-primary);
   color: #FFFFFF;
   padding: 10px 16px;
   box-shadow: 0 1px 3px rgba(255, 122, 26, 0.2);
