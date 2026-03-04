@@ -22,13 +22,21 @@
 
   // ── CONFIGURATION ─────────────────────────────────────────
   const cfg = Object.assign({
-    webhookUrl: 'https://mii19.app.n8n.cloud/webhook-test/widgetreply2',
-    botName: 'Tara',
-    botTagline: 'How can I help you today?',
-    welcomeMsg: "Hi 👋 I'm Tara from BotHive AI. I help businesses launch chat and voice bots that handle leads, bookings, and support. Want to try it out or book a demo?",
-    placeholder: 'Message...',
-    storageKey: 'bh_chat_session',
+    webhookUrl:       'https://mii19.app.n8n.cloud/webhook-test/widgetreply2',
+    botName:          'Tara',
+    botTagline:       'How can I help you today?',
+    welcomeMsg:       "Hi 👋 I'm Tara from BotHive AI. I help businesses launch chat and voice bots that handle leads, bookings, and support. Want to try it out or book a demo?",
+    placeholder:      'Message...',
+    storageKey:       'bh_chat_session',
     requestTimeoutMs: 20000,
+    avatarUrl:        'agent-avatar.png',
+    primaryColor:     '#ea580c',
+    headerStatus:     'Active now',
+    quickReplies: [
+      { label: 'Get Started', message: 'Get Started' },
+      { label: 'Book a Demo', message: 'Book a Demo' },
+      { label: 'See Pricing', message: 'See Pricing' },
+    ],
   }, window.BotHiveConfig || {});
 
   // ── INLINED CSS ───────────────────────────────────────────
@@ -203,7 +211,7 @@
     }
     .bh-msg-row.bh-bot .bh-bubble{border-bottom-left-radius:6px;}
     .bh-msg-row.bh-user .bh-bubble{
-      background:#FF7A1A;color:#FFFFFF;padding:10px 16px;
+      background:var(--bh-primary);color:#FFFFFF;padding:10px 16px;
       box-shadow:0 1px 3px rgba(255,122,26,0.2);
     }
     .bh-msg-time{
@@ -407,6 +415,10 @@
   function buildDOM() {
     if (document.getElementById('bh-chat-root')) return;
 
+    const quickBtnsHtml = cfg.quickReplies.map(btn =>
+      `<button class="bh-action-btn" onclick="window.__bhSendQuick(${JSON.stringify(btn.message)})">${escapeHTML(btn.label)}</button>`
+    ).join('');
+
     const root = document.createElement('div');
     root.id = 'bh-chat-root';
     root.innerHTML = `
@@ -443,11 +455,11 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <div id="bh-header-logo" aria-hidden="true">
-            <img src="agent-avatar.png" alt="${escapeHTML(cfg.botName)}">
+            <img src="${cfg.avatarUrl}" alt="${escapeHTML(cfg.botName)}">
           </div>
           <div id="bh-header-info">
             <div id="bh-header-name">${escapeHTML(cfg.botName)}</div>
-            <div id="bh-header-status">Active now</div>
+            <div id="bh-header-status">${escapeHTML(cfg.headerStatus)}</div>
           </div>
           <div id="bh-header-actions">
             <button class="bh-header-btn" aria-label="Options">
@@ -475,7 +487,7 @@
             <div id="bh-welcome-container">
               <div class="bh-msg-row bh-bot">
                 <div class="bh-msg-avatar" aria-hidden="true">
-                  <img src="agent-avatar.png" alt="">
+                  <img src="${cfg.avatarUrl}" alt="">
                 </div>
                 <div class="bh-bubble-wrap">
                   <div class="bh-bubble">${escapeHTML(cfg.welcomeMsg)}</div>
@@ -486,17 +498,13 @@
                   </div>
                 </div>
               </div>
-              <div class="bh-action-buttons">
-                <button class="bh-action-btn" onclick="window.__bhSendQuick('Get Started')">Get Started</button>
-                <button class="bh-action-btn" onclick="window.__bhSendQuick('Book a Demo')">Book a Demo</button>
-                <button class="bh-action-btn" onclick="window.__bhSendQuick('See Pricing')">See Pricing</button>
-              </div>
+              <div class="bh-action-buttons">${quickBtnsHtml}</div>
             </div>
 
             <!-- Typing indicator -->
             <div id="bh-typing-row" aria-label="Assistant is typing">
               <div class="bh-msg-avatar" aria-hidden="true">
-                <img src="agent-avatar.png" alt="${escapeHTML(cfg.botName)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                <img src="${cfg.avatarUrl}" alt="${escapeHTML(cfg.botName)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
               </div>
               <div class="bh-typing-bubble" aria-hidden="true">
                 <span></span><span></span><span></span>
@@ -561,7 +569,7 @@
 
     if (role === 'bot') {
       row.innerHTML = `
-        <div class="bh-msg-avatar" aria-hidden="true"><img src="agent-avatar.png" alt=""></div>
+        <div class="bh-msg-avatar" aria-hidden="true"><img src="${cfg.avatarUrl}" alt=""></div>
         <div class="bh-bubble-wrap">
           <div class="bh-bubble">${escapeHTML(text)}</div>
           <div class="bh-msg-meta" aria-hidden="true">
@@ -764,9 +772,17 @@
   }
 
   // ── INIT ─────────────────────────────────────────────────
+  function injectColorOverride() {
+    if (cfg.primaryColor === '#ea580c') return; // default — no override needed
+    const style = document.createElement('style');
+    style.textContent = `#bh-chat-root{--bh-primary:${cfg.primaryColor};}`;
+    document.head.appendChild(style);
+  }
+
   function init() {
     injectStyles();
     buildDOM();
+    injectColorOverride();
     session = SessionManager.load();
     bindEvents();
     updateLauncherSubtitle();
